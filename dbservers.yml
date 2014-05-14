@@ -1,0 +1,60 @@
+---
+# the database servers
+
+# uncomment this if you install a monitoring server
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+
+- hosts: db
+  vars:
+    node_type: db
+    dbname: owncloud
+    dbuser: owncloud
+    dbpassword: owncloud
+  vars_files:
+    - vars/users.yml
+
+  roles:
+    - common
+    # - zabbix_agent
+    - postgres
+
+
+- hosts: db
+  sudo: yes
+  sudo_user: postgres
+  gather_facts: no
+
+  vars:
+    dbname: owncloud
+    dbuser: owncloud
+    dbpassword: owncloud
+
+  handlers:
+    - include: roles/postgres/handlers/main.yml
+
+  tasks:
+  - name: ensure database is created
+    postgresql_db: name={{dbname}}
+
+  - name: ensure user has access to database
+    postgresql_user: db={{dbname}} name={{dbuser}} password={{dbpassword}} priv=ALL
+
+# uncomment this if you install a monitoring server
+
+#  - name: ensure zabbix database is created
+#    postgresql_db: name=zabbix
+
+#  - name: give access to zabbix user
+#    postgresql_user: db=zabbix name=zabbix password=zabbix priv=ALL
+
+#  - name: ensure user has access to database
+#    postgresql_user: db={{dbname}} name=zabbix password=zabbix priv=ALL
+
+  - name: ensure user does not have unnecessary privilege
+    postgresql_user: name={{item}} role_attr_flags=NOSUPERUSER,NOCREATEDB
+    with_items:
+      - owncloud
+      - zabbix

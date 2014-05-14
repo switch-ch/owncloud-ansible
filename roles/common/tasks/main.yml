@@ -1,0 +1,44 @@
+---
+# this role does the common setup tasks for a node in the owncloud cluster
+
+- name: update apt
+  apt: update_cache=yes cache_valid_time=7200
+
+- name: setup locale
+  apt: name=language-pack-de state=present
+
+- name: install packages
+  apt: name={{ item }} state=present
+  with_items:
+    - ntp
+    - iptables-persistent
+    - xfsprogs
+
+- name: Configure ntp file
+  template: src=ntp.conf.j2 dest=/etc/ntp.conf
+  tags: ntp
+  notify: restart ntp
+
+- name: Start the ntp service
+  service: name=ntp state=started enabled=true
+  tags: ntp
+
+- name: create iptables directory
+  file: dest=/etc/iptables state=directory
+
+- name: insert iptables template
+  template: src=iptables.j2 dest=/etc/iptables/rules.v4
+  notify: reload iptable-rules
+
+- name: disable TCPtime stamps
+  lineinfile:
+    dest=/etc/sysctl.conf
+    line="{{ item }}"
+  with_items:
+    - "net.ipv4.tcp_timestamps = 0"
+  notify: reload sysctl
+
+- include: add_users.yml
+
+
+

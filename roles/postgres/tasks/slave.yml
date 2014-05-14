@@ -1,0 +1,32 @@
+---
+
+# fetch base backup
+
+- name: create backup directory
+  file:
+    dest=/mnt/dbdata/main
+    state=directory
+    owner=postgres
+    mode=0700
+
+- name: pull first backup
+  command: su - postgres -c 'pg_basebackup -D /mnt/dbdata/main  -h {{ db_ip }} --xlog-method=stream'
+    creates=/mnt/dbdata/main/backup_label
+  ignore_errors: yes
+
+- name: droprecovery.conf
+  template:
+    src=recovery.conf.j2
+    dest=/mnt/dbdata/main/recovery.conf
+    owner=postgres
+
+
+- name: set replication parameters
+  lineinfile: dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf line="$item"
+  notify: restart postgres
+  with_items:
+    - 'hot_standby = on'
+
+
+- name: restart postgres
+  service: name=postgresql state=restarted

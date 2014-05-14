@@ -1,0 +1,23 @@
+---
+# the slave database servers
+
+
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+
+- hosts: dbslave
+  vars:
+    node_type: db
+    dbname: owncloud
+    dbuser: owncloud
+    dbpassword: owncloud
+  vars_files:
+    - vars/users.yml
+  roles:
+    - common
+#    - zabbix_agent
+    - postgres
+
+

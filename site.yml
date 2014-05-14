@@ -1,0 +1,14 @@
+---
+
+# include the different types of servers
+#- include: syslogservers.yml
+- include: dbservers.yml
+- include: dbslaveservers.yml
+# - include: pgpoolservers.yml
+#- include: nfsservers.yml
+#- include: webservers.yml
+#- include: lbservers.yml
+#- include: regservers.yml
+#- include: ldapservers.yml
+
+

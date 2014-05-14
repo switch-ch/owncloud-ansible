@@ -1,0 +1,14 @@
+---
+# Handlers for common notifications
+
+- name: restart ntp
+  service: name=ntp state=restarted
+
+- name: restart iptables
+  service: name=iptables state=restarted
+
+- name: reload iptable-rules
+  shell: /sbin/iptables-restore < /etc/iptables/rules.v4
+
+- name: reload sysctl
+  command: sysctl -p

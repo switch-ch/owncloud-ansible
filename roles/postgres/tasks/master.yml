@@ -1,0 +1,40 @@
+---
+
+
+
+# backup
+# https://wiki.postgresql.org/wiki/Automated_Backup_on_Linux
+
+- name: create backup directory
+  file: dest=/var/backups/database/postgresql state=directory owner=postgres
+
+- name: create pg_backup directory
+  file: dest=/home/postgres/pg_backup state=directory
+
+- name: Drop config file
+  copy: src=pg_backup.conf dest=/home/postgres/pg_backup/pg_backup.conf owner=postgres mode=0644
+
+- name: Drop backup file
+  copy: src=pg_backup_rotated.sh dest=/home/postgres/pg_backup/pg_backup_rotated.sh owner=postgres mode=755
+
+
+- name: setup daily cronjob
+  cron: name="backup daily" user=postgres minute="30" hour="23" job="/home/postgres/pg_backup/pg_backup_rotated.sh"
+
+# streaming replication
+
+- name: set replication parameters
+  lineinfile: dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf line="$item"
+  notify: restart postgres
+  with_items:
+    - 'wal_level = hot_standby'
+    - 'max_wal_senders = 5'
+    - 'wal_keep_segments = 200'
+
+
+
+- name: setup replication access control
+  lineinfile: dest=/etc/postgresql/{{ pg_version }}/main/pg_hba.conf line='host replication all {{ item }}/32 trust'
+  with_items:
+    - '{{ slave_ip }}'
+  notify: restart postgres

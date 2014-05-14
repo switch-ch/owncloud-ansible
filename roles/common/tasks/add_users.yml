@@ -1,0 +1,20 @@
+---
+
+
+- name: Create user
+
+  user:
+    home=/home/{{ item }}
+    name={{ item }}
+    comment="{{ user[item]['comment'] }}"
+    shell=/bin/bash
+    uid={{ user[item]['uid'] }}
+    groups="sudo,admin"
+    state=present
+  with_flattened: admin_users
+
+- name: copy per-user ssh key (authorized_keys) to the destination server
+  authorized_key:
+    user={{ item }}
+    key="{{ user[item]['key'] }}"
+  with_flattened: admin_users

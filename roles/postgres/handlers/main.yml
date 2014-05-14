@@ -1,0 +1,8 @@
+---
+
+- name: restart postgres
+  service: name=postgresql state=restarted
+
+
+- name: reload sysctl
+  command: sysctl -p

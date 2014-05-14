@@ -1,0 +1,102 @@
+---
+# Install the zapostgres server
+
+
+- name: install postgres ppa
+  action: apt_repository repo='deb http://apt.postgresql.org/pub/repos/apt/ saucy-pgdg main' state=present
+
+- name: install ppa key
+  apt_key: id=ACCC4CF8 url=https://www.postgresql.org/media/keys/ACCC4CF8.asc state=present
+
+- name: update apt
+  command: apt-get update
+
+- name: make filesystem
+  command: mkfs.xfs /dev/vdb
+  ignore_errors: yes
+
+- name: create mountpoint
+  file: dest=/mnt/dbdata state=directory
+
+- name: mount data volume
+  mount: name=/mnt/dbdata src=/dev/vdb fstype=xfs state=mounted opts=noatime
+
+- name: ensure packages are installed
+  action: apt name={{item}}
+  with_items:
+      - postgresql
+      - postgresql-{{ pg_version }}
+      - libpq-dev
+      - python-psycopg2
+
+- name: stop postgres
+  service: name=postgresql state=stopped
+
+- name: move postgres data directory
+  command:
+    mv /var/lib/postgresql/{{ pg_version }}/main /mnt/dbdata
+    creates=/mnt/dbdata/main
+  when: master and not slave
+
+- name: increase kernel memory limits
+  lineinfile:
+    dest=/etc/sysctl.conf
+    line="$item"
+  with_items:
+    - "kernel.shmmax=17179869184"
+    - "kernel.shmall=4194304"
+  notify: reload sysctl
+
+- name: setup access control
+  lineinfile: dest=/etc/postgresql/{{ pg_version }}/main/pg_hba.conf line='host owncloud owncloud {{ internal_network }}/24 password'
+  notify: restart postgres
+
+
+# uncomment if you install monitoring server
+#- name: setup access control for zabbix
+#  lineinfile: dest=/etc/postgresql/{{ pg_version }}/main/pg_hba.conf line='local owncloud zabbix password'
+#  notify: restart postgres
+
+- name: listen on internal ip
+  lineinfile:
+    dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf
+    regexp="listen_address"
+    line="listen_addresses = '{{ ansible_default_ipv4.address }}'"
+  notify: restart postgres
+
+- name: set available memory
+  lineinfile:
+    dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf
+    regexp="shared_buffers"
+    line="shared_buffers = 8192MB"
+
+- name: set data directory
+  lineinfile:
+    dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf
+    regexp="data_directory"
+    line="data_directory = '/mnt/dbdata/main'"
+
+- name: move stats_tmp to ramdisk
+  lineinfile:
+    dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf
+    regexp="stats_temp_directory"
+    line="stats_temp_directory = '/dev/shm'"
+  notify: restart postgres
+
+- name: set logging parameters
+  lineinfile: dest=/etc/postgresql/{{ pg_version }}/main/postgresql.conf line="$item"
+  notify: restart postgres
+  with_items:
+    - 'logging_collector = on'
+    - "log_directory = 'pg_log'"
+    - "log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'"
+    - "log_file_mode = 0600"
+    - "log_rotation_age = 1d"
+    - "log_min_duration_statement = 30"
+    - "log_line_prefix = '%t '"
+
+- include: master.yml
+  when: master and not slave
+
+- include: slave.yml
+  when: slave and not master

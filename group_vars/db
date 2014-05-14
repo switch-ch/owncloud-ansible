@@ -1,0 +1,12 @@
+---
+
+iptables:
+  tcp:
+    - 5432
+  udp: []
+
+pg_version: 9.3
+
+
+master: true
+slave: false

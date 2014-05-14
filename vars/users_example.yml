@@ -1,0 +1,28 @@
+
+---
+
+user:
+  joe_admin:
+    comment: "Joe Admin"
+    uid: 1111
+    key: "ssh-rsa ...."
+  des_developer:
+    comment: "Des Developer"
+    uid: 1112
+    key: "ssh-rsa ...."
+
+# add the names of all sysadmins that will need access to the production servers
+# here
+users_admin:
+  - joe_admin
+
+# add the names of the developers that will need access to the staging servers
+users_dev:
+  - des_developer
+
+production_users:
+  - users_admin
+
+staging_users:
+  - users_admin
+  - users_dev
