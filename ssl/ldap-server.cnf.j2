@@ -1,0 +1,46 @@
+# OpenSSL configuration file for creating a CSR for a server certificate.
+
+# To create a CSR, run:
+#
+# openssl req -new -config ldap-server.cnf -keyout ldap-server.key -out ldap-server.csr
+# chmod 600 ldap-server.key
+
+# To create a self-signed certificate, run:
+#
+# openssl x509 -req -extfile ldap-server.cnf -days 1000 -signkey ldap-server.key -in ldap-server.csr -extensions req_ext -out ldap-server.crt
+
+# the fully qualified server (or service) name
+IP = {{ ldap_ip }}
+FQDN = {{ ldap_host }}.novalocal
+
+# the name of your organization
+ORGNAME = TAKE-BACK-THE.NET
+OU = Cloud
+
+# subjectAltName entries
+ALTNAMES = IP:$IP, DNS:$FQDN
+
+[ ca ]
+default_ca = default_ca
+
+[ default_ca ]
+new_certs_dir = .
+
+# --- no modifications required below ---
+[ req ]
+default_bits = 2048
+prompt = no
+encrypt_key = no
+default_md = sha1
+distinguished_name = dn
+req_extensions = req_ext
+
+[ dn ]
+C = CH
+O = $ORGNAME
+OU = $OU
+CN = $FQDN
+
+[ req_ext ]
+subjectAltName = $ALTNAMES
+

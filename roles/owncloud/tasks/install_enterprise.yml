@@ -1,0 +1,40 @@
+---
+
+
+- name: Enterprise - Download OwnCloud Community release
+  get_url:
+    url=http://download.owncloud.org/community/owncloud-{{ OWNCLOUD_VERSION }}.tar.bz2
+    dest=/tmp/owncloud-{{ OWNCLOUD_VERSION }}.tar.bz2
+    mode=0644
+  tags:
+    - app
+
+- name: Enterprise - Install OwnCloud Enterprise release
+  copy:
+    src=owncloudEE/owncloud_enterprise-{{ OWNCLOUD_VERSION }}.tar.bz2
+    dest=/tmp/owncloud_enterprise-{{ OWNCLOUD_VERSION }}.tar.bz2
+    mode=0644
+  ignore_errors: yes
+  tags:
+    - app
+
+- name: Enterprise - Unpack Enterprise OwnCloud
+  command: chdir=/var/www tar -xjf /tmp/owncloud_enterprise-{{ OWNCLOUD_VERSION }}.tar.bz2
+  tags:
+    - app
+
+
+- name: Enterprise - Create tmp directory
+  file: dest=/tmp/oc-community state=directory
+
+- name: Enterprise - unpack community edition for apps
+  command: chdir=/tmp/oc-community tar -xjf /tmp/owncloud-{{ OWNCLOUD_VERSION }}.tar.bz2
+  tags:
+    - app
+
+- name: Enterprise - Copy apps
+  command: cp -r /tmp/oc-community/owncloud/apps/${item} /var/www/owncloud/apps
+  with_items:
+    - files_pdfviewer
+    - files_videoviewer
+    - gallery

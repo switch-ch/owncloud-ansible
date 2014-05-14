@@ -1,0 +1,16 @@
+---
+# Install the Nginx server
+#
+
+- name: Install the Nginx server
+  action: apt name={{item}}
+  with_items:
+    - nginx
+
+- name: drop config file
+  copy: src=nginx.conf dest=/etc/nginx/nginx.conf owner=root mode=644
+  notify: reload nginx
+
+- name: start nginx service
+  service: name=nginx state=started enabled=true
+

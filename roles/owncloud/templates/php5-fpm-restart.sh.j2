@@ -1,0 +1,42 @@
+#!/bin/bash
+# shell script which checks if nginx is still running
+# if not then it restarts the processes, including php-fpm
+# this script should be called by a Cronjob every minute
+
+
+# change the process name to whatever you want to keep alive:
+PROCESS="php5";
+HOSTNAME=`hostname`;
+#mailing stuff
+tmp=/tmp/mail-body-`date +%F`;
+touch $tmp && chmod 600 $tmp;
+#Set up the various headers for sendmail to use
+TO='{{ notification_mail }}';
+CC='';
+FROM='{{ notification_mail }}';
+SUBJECT="$HOSTNAME: PHP5-FPM is slacking again";
+MIMEVersion='1.0';
+CONTENTType="text/html; charset=us-ascii";
+#Here write the content of your mail.
+BODY="$HOSTNAME: php5-fpm has crashed and restarted at: `date`";
+
+if ps ax | grep -v grep | grep -v restart | grep $PROCESS > /dev/null
+then
+       true;
+else
+        echo "$PROCESS is NOT running";
+        # change the next line to the command you want to run for restarting:
+        ps -ef | grep php | grep -v grep | awk '{print $2}' | xargs kill -9
+        service php5-fpm restart;
+
+	echo -e "To: $TO" > $tmp;
+	echo -e "Cc: $CC" >> $tmp;
+	echo -e "From: $FROM" >> $tmp;
+	echo -e "Content-Type: $CONTENTType">>$tmp;
+	echo -e "MIME-Version: $MIMEVersion">>$tmp;
+	echo -e "Subject: $SUBJECT">>$tmp;
+	echo -e "\n">>$tmp;
+	echo -e "$BODY">>$tmp;
+	/usr/sbin/sendmail -t < $tmp;
+	rm -rf $tmp;
+fi

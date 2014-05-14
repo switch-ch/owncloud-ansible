@@ -1,0 +1,269 @@
+---
+
+
+
+- name: update apt
+  command: apt-get update
+  tags:
+    - infrastructure
+
+
+- name: Install required packages
+  action: apt name={{item}}
+  with_items:
+    - php5-fpm
+    - php5
+    - php5-gd
+    - php-xml-parser
+    - php5-intl
+    - php5-pgsql
+    - php5-curl
+    - php5-json
+    - php5-ldap
+    - curl
+    - libcurl3
+    - nfs-common
+  tags:
+    - infrastructure
+
+
+
+- name: create /var/www directory
+  file: dest=/var/www state=directory owner=www-data
+  tags:
+    - app
+
+- include: install_community.yml
+  when: community
+
+- include: install_enterprise.yml
+  when: enterprise
+
+
+- name: chown owncloud directory
+  command: chdir=/var/www chown -R www-data:www-data owncloud
+  tags:
+    - app
+
+# setup NFS
+
+- name: deny rpcbind
+  lineinfile: "dest=/etc/hosts.deny line='rpcbind : ALL'"
+  tags:
+    - infrastructure
+
+- name: allow nfs server
+  lineinfile: "dest=/etc/hosts.allow line='rpcbind : {{ ldap_ip }}'"
+  tags:
+    - infrastructure
+
+# set mode to 770, otherwise oC will chmod the complete data directory to 770
+# this will kill the NFS server
+- name: create mountpoint
+  file: dest=/mnt/data state=directory owner=www-data mode=770
+  tags:
+    - infrastructure
+
+- name: mount nfs directory
+  action: mount name=/mnt/data src={{ nfs_ip }}:/mnt/data fstype=nfs opts=rw,async,rsize=1048576,wsize=1048576 state=mounted
+  tags:
+    - infrastructure
+
+# configure LDAP
+
+- name: copy slapd.pem file
+  copy:
+    src=etc/ldap/ssl/slapd-{{ service_name }}.pem
+    dest=/etc/ssl/certs/slapd.pem
+  tags:
+    - infrastructure
+
+- name: copy ldap.conf
+  copy:
+    src=etc/ldap/ldap.conf
+    dest=/etc/ldap/ldap.conf
+  tags:
+    - infrastructure
+
+- name: copy /etc/hosts
+  template:
+    src=etc/hosts.j2
+    dest=/etc/hosts
+  tags:
+    - infrastructure
+
+
+# Configure Owncloud
+
+
+
+- name: syslog configuration
+  template:
+    src=etc/rsyslog.d/49-owncloud.conf.j2
+    dest=/etc/rsyslog.d/49.owncloud.conf
+  notify: restart syslog
+
+- name: create log directory
+  file: dest=/var/log/owncloud state=directory owner=www-data
+  tags:
+    - app
+    - config
+
+- name: drop auto configuration file
+  template: src={{ service_name }}/autoconfig.php.j2 dest=/var/www/owncloud/config/autoconfig.php mode=0644 owner=www-data
+  tags:
+    - app
+    - config
+
+- name: drop configuration file
+  template: src={{ service_name }}/config.php.j2 dest=/var/www/owncloud/config/config.php mode=0644 owner=www-data
+  tags:
+    - app
+    - config
+
+- name: create themes directory
+  file: dest=/var/www/owncloud/themes state=directory owner=ubuntu mode=777
+  tags:
+    - app
+    - config
+
+
+# rsync it to the home directory of the ubuntu user because
+# rsync will fail horribly when syncing to a directory not under users control
+#- name: rsync mytheme theme
+#  synchronize:
+#    src=roles/owncloud/files/themes/mytheme
+#    dest=/home/ubuntu
+#    times=no
+#
+#- name: copy themes directory
+#  command: cp -r /home/ubuntu/mytheme/ /var/www/owncloud/themes
+
+
+- name: create php5 config directory
+  file: dest=/etc/php5/conf.d owner=root state=directory
+  tags:
+    - app
+    - config
+
+- name: drop php pgsql configuration file
+  copy: src=pgsql.ini dest=/etc/php5/conf.d/pgsql.ini mode=0644 owner=root
+  tags:
+    - app
+    - config
+
+# needed because: https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1230917
+- name: change php5-fpm logrotate configuration file
+  copy:
+    src=etc/logrotate.d/php5-fpm
+    dest=/etc/logrotate.d/php5-fpm
+    mode=0644 owner=root
+  tags:
+    - app
+    - config
+
+- name: delete old session files
+  cron: name="delete old sessions" user=www-data minute=1 hour="*" job="find /dev/shm/sess_* -mmin +59 -exec rm {} \;"
+  tags:
+    - app
+    - config
+
+
+- name: drop nginx site configuration
+  template: src={{ service_name }}.j2 dest=/etc/nginx/sites-available/{{ service_name }}
+  tags:
+    - app
+    - config
+
+- name: remove default php5-fpm www pool file
+  file: dest=/etc/php5/fpm/pool.d/www.conf state=absent
+
+- name: drop php5-fpm configuration
+  copy:
+    src=etc/php5/fpm/php-fpm.conf
+    dest=/etc/php5/fpm/php-fpm.conf
+    mode=0644
+    owner=root
+
+
+- name: drop php5-fpm pool configuration
+  template: src=owncloud.conf dest=/etc/php5/fpm/pool.d/owncloud.conf owner=root mode=0644
+  tags:
+    - app
+    - config
+
+# nginx
+
+
+- name: enable nginx site
+  file:
+    src=/etc/nginx/sites-available/{{ service_name }}
+    dest=/etc/nginx/sites-enabled/{{ service_name }}
+    state=link
+  tags:
+    - app
+
+- name: disable nginx default site
+  file:
+    dest=/etc/nginx/sites-enabled/default
+    state=absent
+  tags:
+    - app
+
+
+# if you need specific patches to the owncloud source code, here
+# is the place to drop them onto the server
+
+#- name: patch owncloud
+#  copy:
+#    src=owncloud/lib/private/preferences.php
+#    dest=/var/www/owncloud/lib/private/preferences.php
+#    owner=www-data
+#    group=www-data
+#    force=yes
+
+
+- name: restart php5-fpm
+  service: name=php5-fpm state=restarted
+  tags:
+    - app
+    - config
+
+- name: restart nginx
+  service: name=nginx state=restarted
+  tags:
+    - app
+    - config
+
+- name: route www-data mail to /dev/null
+  copy: src=aliases dest=/etc/aliases owner=root mode=644
+  tags:
+    - config
+
+# php session settings are configured in templates/owncloud.conf
+
+- name: copy test files
+  copy: src={{item}} dest=/var/www/owncloud/{{item}} mode=644 owner=www-data
+  with_items:
+    - foo.php
+    - foo.html
+
+- name: drop php5-fpm watchdog
+  template:
+    src=php5-fpm-restart.sh.j2
+    dest=/root/php5-fpm-restart.sh
+    owner=root
+    mode=755
+  tags:
+    - config
+
+- name: schedule watchdog
+  cron:
+    name="php5-fpm watchdog"
+    user=root
+    minute="*" hour="*"
+    job="/root/php5-fpm-restart.sh"
+  tags:
+    - config
+
+

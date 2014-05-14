@@ -1,0 +1,9 @@
+# /etc/exports: the access control list for filesystems which may be exported
+#               to NFS clients.  See exports(5).
+#
+# dropped by ansible - don't change
+#
+
+{% for host in groups['web'] %}
+/mnt/data {{ hostvars[host]['ansible_eth0'].ipv4.address }}(rw,sync,no_root_squash,no_subtree_check)
+{% endfor %}

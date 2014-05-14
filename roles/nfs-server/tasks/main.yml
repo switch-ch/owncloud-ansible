@@ -1,0 +1,58 @@
+---
+# Install the NFS server
+
+- name: Install the NFS server
+  action: apt name={{item}}
+  with_items:
+    - rpcbind
+    - nfs-kernel-server
+    - xfsprogs
+    - rsnapshot
+
+- name: mountpoints
+  action: file dest=/mnt/$item state=directory
+  with_items:
+    - data
+    - backup
+
+
+- name: portmap lockdown
+  lineinfile: "dest=/etc/hosts.deny line='rpcbind mountd nfsd statd lockd rquotad : ALL'"
+
+- name: portmap allow
+  template: src=hosts.allow.j2 dest=/etc/hosts.allow
+
+- name: make filesystem
+  command: mkfs.xfs {{ item }}
+  with_items:
+    - /dev/vdb
+    - /dev/vdc
+  ignore_errors: yes
+
+- name: mount /dev/vdb
+  mount: name=/mnt/data src=/dev/vdb fstype=xfs state=mounted opts=noatime
+
+- name: mount /dev/vdc
+  mount: name=/mnt/backup src=/dev/vdc fstype=xfs state=mounted opts=noatime
+
+- name: set nfs exports
+  template: src=exports.j2 dest=/etc/exports
+  notify:
+    - reexport nfs
+
+- name: configure rsnapshot
+  copy: src=rsnapshot.conf dest=/etc/rsnapshot.conf owner=root mode=644
+
+
+- name: setup hourly cronjob
+  cron: name="backup hourly" user=root minute="5" hour="5,11,17,23" job="/usr/bin/rsnapshot hourly"
+
+- name: setup daily cronjob
+  cron: name="backup daily" user=root minute="30" hour="23" job="/usr/bin/rsnapshot daily"
+
+- name: setup weekly cronjob
+  cron: name="backup weekly" user=root minute="15" hour="22" weekday="0" job="/usr/bin/rsnapshot weekly"
+
+- name: setup monthly cronjob
+  cron: name="backup monthly" user=root minute="10" hour="21" day="1" job="/usr/bin/rsnapshot monthly"
+

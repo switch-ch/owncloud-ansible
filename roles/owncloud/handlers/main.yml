@@ -1,0 +1,4 @@
+---
+
+- name: restart syslog
+  service: name=rsyslog state=restarted

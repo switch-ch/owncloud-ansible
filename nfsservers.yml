@@ -1,0 +1,23 @@
+---
+
+# the NSF servers
+
+
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+
+- hosts: web
+  tasks:
+    - name: talk to web servers to populate facts
+      command: /bin/true
+
+
+- hosts: nfs
+  vars_files:
+    - vars/users.yml
+  roles:
+    - common
+    - zabbix_agent
+    - nfs-server

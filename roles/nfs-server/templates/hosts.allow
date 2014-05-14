@@ -1,0 +1,9 @@
+# dropped by ansible
+
+rpcbind mountd nfsd statd lockd rquotad : {% for host in groups['nfs'] %}
+{{ hostvars[host]['ansible_eth0'].ipv4.address }}
+{% endfor %}
+{% for host in groups['web'] %}
+{{ hostvars[host]['ansible_eth0'].ipv4.address }}
+{% endfor %}
+

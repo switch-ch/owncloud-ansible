@@ -4,9 +4,11 @@
 - include: syslogservers.yml
 - include: dbservers.yml
 - include: dbslaveservers.yml
+- include: nfsservers.yml
+- include: webservers.yml
+
 # - include: pgpoolservers.yml
-#- include: nfsservers.yml
-#- include: webservers.yml
+
 #- include: lbservers.yml
 #- include: regservers.yml
 #- include: ldapservers.yml

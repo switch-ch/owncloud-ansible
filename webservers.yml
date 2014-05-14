@@ -1,0 +1,37 @@
+---
+# handles the webservers
+
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+
+# if you have a special theme, then uncomment the following section to
+# pull it down from another gut repository
+#- hosts: cmd
+#  connection: local
+#  sudo: false
+#  tasks:
+#    - name: update switch theme
+#      local_action: command cd roles/owncloud/files/themes/switch && git pull origin master
+
+- hosts: web
+  vars:
+    node_type: web
+  vars_files:
+    - vars/users.yml
+
+  roles:
+    - common
+    - exim
+#    - zabbix_agent
+    - nginx
+    - owncloud
+
+- hosts: web[0]
+  tasks:
+    - name: setup cronjob
+      cron: name="owncloud" user=www-data minute="*/15" job="php -f /var/www/owncloud/cron.php"
+      tags:
+        - app
+        - config

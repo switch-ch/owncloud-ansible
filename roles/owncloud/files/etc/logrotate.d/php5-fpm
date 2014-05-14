@@ -1,0 +1,15 @@
+/var/log/php5-fpm.log {
+        rotate 12
+        weekly
+        missingok
+        notifempty
+        compress
+        delaycompress
+        copytruncate
+        postrotate
+                # https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1230917
+                # https://bugs.launchpad.net/ubuntu/+source/php5/+bug/706945
+                # https://bugs.launchpad.net/ubuntu/+source/php5/+bug/1242376
+                [ ! -f /var/run/php5-fpm.pid ] || kill -USR1 `cat /var/run/php5-fpm.pid`
+        endscript
+}

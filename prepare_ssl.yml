@@ -1,0 +1,37 @@
+---
+
+- name: create the necessary SSL certificates for servers
+  hosts: cmd
+  connection: local
+  sudo: false
+  tasks:
+    - name: create server.cnf
+      template: src=ssl/ldap-server.cnf.j2 dest=ssl/ldap-server-{{ service_name }}.cnf
+
+    - name: generate LDAP CSR
+      command:
+        openssl req -new -config ldap-server-{{ service_name }}.cnf -keyout slapd-{{ service_name }}.key -out slapd-{{ service_name }}.csr
+        chdir=ssl
+        creates=slapd-{{ service_name }}.csr
+
+    - name: generate LDAP CRT
+      command:
+        openssl x509 -req -extfile ldap-server-{{ service_name }}.cnf -days 1000 -signkey slapd-{{ service_name }}.key -in slapd-{{ service_name }}.csr -extensions req_ext -out slapd-{{ service_name }}.crt
+        chdir=ssl
+        creates=slapd-{{ service_name }}.crt
+
+    - name: copy LDAP pem to LDAP role
+      copy:
+        src=ssl/slapd-{{ service_name }}.crt
+        dest=roles/ldap/files/etc/ssl/slapd-{{service_name }}.pem
+
+
+    - name: copy LDAP pem to owncloud role
+      copy:
+        src=ssl/slapd-{{ service_name }}.crt
+        dest=roles/owncloud/files/etc/ldap/ssl/slapd-{{service_name }}.pem
+
+    - name: copy LDAP key to LDAP role
+      copy:
+        src=ssl/slapd-{{ service_name }}.key
+        dest=roles/ldap/files/etc/ssl/slapd-{{service_name }}.key

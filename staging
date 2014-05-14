@@ -8,6 +8,18 @@
 [dbslave]
 10.0.20.99 ansible_ssh_user=ubuntu
 
+[nfs]
+10.0.20.102 ansible_ssh_user=ubuntu
+
+[web]
+10.0.20.101 ansible_ssh_user=ubuntu
+
+[ldap]
+10.0.20.103 ansible_ssh_user=ubuntu
+
+[cmd]
+localhost ansible_connection=local
+
 # in the small setup, there is no monitoring server defined
 # you still need this grouping though for the scripts to
 # work
@@ -19,19 +31,24 @@
 syslog
 db
 dbslave
+nfs
+ldap
+web
 monitoring
+cmd
+
 
 
 [staging:vars]
 # the dns entry name of the service (maps to the public IP of the loadbalancer)
-service_name=owncloud-stage.take-back-the.net
+service_name=drive-stage.take-back-the.net
 
 # the IP range (/24) of the internal network
 # used for access control etc.
 internal_network=10.0.20.0
 
 # the internal IP address of the LDAP Server (same as the one above)
-ldap_ip=10.0.20
+ldap_ip=10.0.20.103
 
 # The host name of the LDAP server
 ldap_host=stage-ldap
@@ -40,7 +57,7 @@ ldap_host=stage-ldap
 ldap_password=myLDAPPassword
 
 # The internal IP address of the NFS server
-nfs_ip=10.0.20.
+nfs_ip=10.0.20.102
 
 # The internal IP address of the database server
 db_ip=10.0.20.85
@@ -58,8 +75,9 @@ OWNCLOUD_VERSION='6.0.3'
 # Is this an enterprise version of owncloud? Set to true, it will install
 # the enterprise version (the tgz file must be in 'roles/owncloud/files/owncloudEE)
 enterprise=false
+community=true
 
-# is this a staging system? If true, the public keys in 'roles/common/files/dev_keys'
+# is this a staging system? If true, the public keys of the developers (vars/users.yml)
 # are added to the 'authorized_keys' of the ubuntu user of the virtual machines
 staging_system=true
 
@@ -73,7 +91,7 @@ notification_mail=root@take-back-the.net
 
 
 #ha proxy username and password
-HAPROXY_USER=us3r
+HAPROXY_USER=user
 HAPROXY_PASSWORD=secretHaproxyPassword
 
 # Set the list of users that have access to these servers
