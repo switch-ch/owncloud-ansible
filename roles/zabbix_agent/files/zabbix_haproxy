@@ -1,0 +1,296 @@
+#!/usr/bin/perl
+
+use LWP::UserAgent;
+use IO::Pipe;
+use Getopt::Std;
+my $agent = new LWP::UserAgent;
+
+my $opt_string = 'c:u:z:s:p:r:C:h:H:vdt';
+getopts($opt_string, \%opt) or usage();
+
+sub usage()
+{
+    print STDERR "Usage: ./zabbix_haproxy [arguments]\n";
+    print STDERR "This program reads the HAProxy config file for special notations and uses this info\n";
+    print STDERR "to send data about certain hosts in haproxy to zabbix.\n";
+    print STDERR "\n";
+    print STDERR "The haproxy config has 'frontend' sections and 'server' lines. These lines are annotated\n";
+    print STDERR "with a special comment which tells this script that the frontend or server is tagged for\n";
+    print STDERR "zabbix.\n";
+    print STDERR "\n";
+    print STDERR "Example config line where the frontend named 'irc-galleria' (the former) is sent to zabbix\n";
+    print STDERR "host named 'irc-galleria' (the later).\n";
+    print STDERR "frontend irc-galleria # @zabbix_frontend(irc-galleria)\n";
+    print STDERR "\n";
+    print STDERR "Another example for a server where server named suomirock is sent to zabbix host named\n";
+    print STDERR "suomirock.web.pri\n";
+    print STDERR "  server suomirock 10.3.0.24:80 check weight 16 maxconn 200   # @zabbix_server(suomirock.web.pri)\n";
+    print STDERR "\n";
+    print STDERR "All hosts in zabbix must be tagged to use Template_HAProxyItem\n";
+    print STDERR "\n";
+    print STDERR "Command line arguments: You need to supply at least -c, -u and -s arguments.\n";
+    print STDERR "   -c <filename>    HAProxy config file\n";
+    print STDERR "   -u <url>         URL where the haproxy statistics are. ex: http://foobar.com/haproxy?stats;csv\n";
+    print STDERR "   -s <hostname>    Zabbix server host.\n";
+    print STDERR "   -p <port>        Zabbix trapper port. DEFAULT: 10051\n";
+    print STDERR "   -z <full path>   Path to zabbix_sender OPTIONAL\n";
+    print STDERR "   -C <user>:<pass> HTTP Authentication username and password OPTIONAL\n";
+    print STDERR "   -H <host>:<port> Hostname where the realm is active if HTTP Authentication is to be used. Defaults to host in -u <url> OPTIONAL\n";
+    print STDERR "   -r <realm>       HTTP Authentication basic realm, defaults to \"HAProxy Statistics\" OPTIONAL\n";
+    print STDERR "   -h <hostname>    Optional Host: <hostname> header parameter.\n";
+    print STDERR "   -v               turn verbose mode on.\n";
+    print STDERR "   -d               turn debug mode on (prints more than verbose).\n";
+    print STDERR "   -t               Just test, dont send anything to zabbix server.\n";
+    exit;
+}
+
+my $verbose = $opt{v} || $opt{d};
+my $debug = $opt{d};
+my $just_test = $opt{t};
+
+#
+# CONFIGURATION
+#
+
+# Location of the haproxy config file
+#my $haproxy_conf = '/tmp/galtsu.cfg';
+my $haproxy_conf = $opt{c} or usage();
+
+# Url where the CVS haproxy stats can be fetched
+my $url = $opt{u} or usage();;
+
+# Host header in the http request
+my $host_header = $opt{h};
+
+my $http_realm = $opt{r} ? $opt{r} : 'HAProxy Statistics';
+
+my $http_host = $opt{H};
+if (!$http_host) {
+    if ($url =~ m|^http://(.+?)(:\d+)?/|) {
+	$http_host = $1 . ($2 ? $2 : ':80');
+    }
+}
+
+if ($http_host !~ /:\d+/) {
+    $http_host .= ':80';
+}
+
+if ($opt{C}) {
+    # Setup basic authentication
+    my ($user, $pass) = split(/:/, $opt{C});
+    $verbose and print "Using basic authentication: server: $http_host, realm \"$http_realm\", username: $user, password: $pass\n";
+    $agent->credentials($http_host, $http_realm, $user => $pass);
+}
+
+# Path to zabbix_sender command
+my $zabbix_sender_path = $opt{z} ? $opt{z} : "zabbix_sender";
+
+# Zabbix server
+my $zabbix_server = $opt{s} or usage();
+
+# Zabbix trapper port
+my $zabbix_port = $opt{p} ? $opt{p} : 10051;
+$verbose and print "Using zabbix server at $zabbix_server:$zabbix_port\n";
+
+# END OF CONFIGURATION
+
+# These are read from the haproxy config file. example from config where the frontend 'ircgalerie' (the former) will be mapped to zabbix host named 'ircgalerie' (the later)
+#frontend ircgalerie # @zabbix_frontend(ircgalerie)
+#	bind		212.226.93.68:80
+#       .............
+
+my %track_frontends = ();
+
+my %track_servers = ();
+
+parse_haproxy_conf($haproxy_conf);
+
+my $finished = 0;
+my $timeout = 2;
+
+$SIG{CHLD} = sub { wait, $finished = 1 };
+
+my $pipe = new IO::Pipe;
+my $pid = fork;
+
+if($pid == 0) {
+    $pipe->writer;
+    my $response;
+    if ($host_header) {
+	$verbose and print "Using host header: $host_header\n";
+	$response = $agent->get($url, Host => $host_header);
+    } else {
+	$response = $agent->get($url);
+    }
+    if (!$response->is_success) {
+	$pipe->print("FAILURE, response code: " . $response->status_line);
+    }
+    $pipe->print($response->content);
+    exit;
+}
+
+$pipe->reader;
+
+sleep($timeout);
+
+my %proxies = ();
+my %backends = ();
+my %frontends = ();
+my %nodes = ();
+
+if($finished) {
+    my $first_line = 1;
+    foreach my $line ($pipe->getlines) {
+	if ($first_line and $line =~ /^FAILURE, response code:/) {
+	    print STDERR "$line";
+	    exit(1);
+	}
+	$first_line = 0;
+	$debug and print "Got line $line";
+	if ($line =~ /^#/) {
+	    next;
+	}
+	my $data = parse_line($line);
+	$proxies{$$data{pxname}}{$$data{svname}} = $data;
+    }
+}   
+else {
+    kill(9, $pid);
+    print "-1\n";
+    die("Could not get data from url $url");
+}
+
+# Parse out all backends and frontends
+while (($pxname, $nodes) = each(%proxies)) {
+    #print "proxy: $pxname\n";
+    while (($svname, $data) = each (%$nodes)) {
+	#print "-- svname: " . $$data{svname} . "\n";
+	if ($$data{svname} eq "BACKEND") {
+	    #print "Found backend $pxname\n";
+	    $backends{$pxname} = $data;
+	} elsif ($$data{svname} eq "FRONTEND") {
+	    #print "Found frontend $pxname\n";
+	    $frontends{$pxname} = $data;
+	} else {
+	    $nodes{$$data{svname}} = $data;
+	}
+
+    }
+}
+
+# Print out all backend aggregates
+#while (($pxname, $data) = each(%backends)) {
+#    print "Backend $pxname.\n";
+#    print_data($data);
+#}
+
+# Send frontends
+while (($haproxy_name, $zabbix_name) = each(%track_frontends)) {
+    $verbose and print "Sending data for frontend $haproxy_name into zabbix host $zabbix_name\n";
+    send_data($zabbix_name, $frontends{$haproxy_name});
+}
+
+# Send servers
+while (($haproxy_name, $data) = each(%nodes)) {
+    if (exists $track_servers{$haproxy_name}) {
+	$zabbix_name = $track_servers{$haproxy_name};
+	$verbose and print "Sending data for server $haproxy_name into zabbix host $zabbix_name\n";
+	send_data($zabbix_name, $data);
+    }
+}
+
+sub print_data {
+    my $data = shift;
+    print "  Sessions, current : " . $$data{scur} . "\n";
+    print "  Sessions, max     : " . $$data{smax} . "\n";
+    print "  Sessions, total   : " . $$data{stot} . "\n";
+    print "  Traffic, in       : " . $$data{bin} . "\n";
+    print "  Traffic, out      : " . $$data{bout} . "\n";
+    print "  Responses: 1xx    : " . $$data{hrsp_1xx} . "\n";
+    print "  Responses: 2xx    : " . $$data{hrsp_2xx} . "\n";
+    print "  Responses: 3xx    : " . $$data{hrsp_3xx} . "\n";
+    print "  Responses: 4xx    : " . $$data{hrsp_4xx} . "\n";
+    print "  Responses: 5xx    : " . $$data{hrsp_5xx} . "\n";
+    
+}
+
+# Sends tracked values to zabbix server from a single node
+# Argument: key which is used to get the node
+sub send_data {
+    my $zabbix_name = shift;
+    my $data = shift;
+    #$verbose and print "Sending data for zabbix name $zabbix_name. pxname: " . $$data{pxname} . ", svname: " . $$data{svname} . "\n";
+    send_data_item($zabbix_name, 'pxname', $$data{pxname});
+    send_data_item($zabbix_name, 'svname', $$data{svname});
+    send_data_item($zabbix_name, 'req_rate', $$data{req_rate});
+    send_data_item($zabbix_name, 'hrsp_1xx', $$data{hrsp_1xx});
+    send_data_item($zabbix_name, 'hrsp_2xx', $$data{hrsp_2xx});
+    send_data_item($zabbix_name, 'hrsp_3xx', $$data{hrsp_3xx});
+    send_data_item($zabbix_name, 'hrsp_4xx', $$data{hrsp_4xx});
+    send_data_item($zabbix_name, 'hrsp_5xx', $$data{hrsp_5xx});
+    send_data_item($zabbix_name, 'rate', $$data{rate});
+    send_data_item($zabbix_name, 'wretr', $$data{wretr});
+    send_data_item($zabbix_name, 'eresp', $$data{eresp});
+    send_data_item($zabbix_name, 'econ', $$data{econ});
+    send_data_item($zabbix_name, 'ereq', $$data{ereq});
+    send_data_item($zabbix_name, 'bin', $$data{bin});
+    send_data_item($zabbix_name, 'bout', $$data{bout});
+    send_data_item($zabbix_name, 'stot', $$data{stot});
+    send_data_item($zabbix_name, 'smax', $$data{smax});
+    send_data_item($zabbix_name, 'scur', $$data{scur});
+}
+
+# Send a single data item to zabbix server.
+# Argument: server/host/node name in zabbix
+# Argument: name of the parameter (like svname, bin, bout etc)
+# Argument: value/data
+sub send_data_item {
+    my $zabbix_name = shift;
+    my $param = shift;
+    my $value = shift;
+    if ($value eq "") {
+	return;
+    }
+    my $var = 'haproxy.' . $param;
+    my $cmd = "$zabbix_sender_path -z $zabbix_server -p $zabbix_port -s \"$zabbix_name\" -k $var -o $value";
+    $debug and print "Command: $cmd\n";
+    if (!$just_test) {
+	`$cmd`;
+    }
+}
+
+sub parse_line {
+    my $line = shift;
+    chomp $line;
+
+    my @raw = split(/,/, $line);
+
+    my %data = ();
+    my $i = 0;
+    foreach $key (split(/,/, "pxname,svname,qcur,qmax,scur,smax,slim,stot,bin,bout,dreq,dresp,ereq,econ,eresp,wretr,wredis,status,weight,act,bck,chkfail,chkdown,lastchg,downtime,qlimit,pid,iid,sid,throttle,lbtot,tracked,type,rate,rate_lim,rate_max,check_status,check_code,check_duration,hrsp_1xx,hrsp_2xx,hrsp_3xx,hrsp_4xx,hrsp_5xx,hrsp_other,hanafail,req_rate,req_rate_max,req_tot,cli_abrt,srv_abrt")) {
+	my $value = @raw[$i++];
+	$data{$key} = $value;
+    }
+
+    return \%data;
+}
+
+sub parse_haproxy_conf()
+{
+    my $filename = shift;
+    open (FILE, $filename) or die("Could not open haproxy config file at $filename");
+    while (<FILE>) {
+	my $line = $_;
+	if ($line =~ /^(?:frontend|listen)[[:space:]]+([^[:space:]]+).+#.*@zabbix_frontend\((.+)\)/) {
+	    $debug and print "found frontend mapping $1 to $2\n";
+	    $track_frontends{$1} = $2;
+	}
+
+	if ($line =~ /server[[:space:]]+([^[:space:]]+).+#.*@zabbix_server\((.+)\)/) {
+	    $debug and print "found server mapping $1 to $2\n";
+	    $track_servers{$1} = $2;
+	}
+
+
+    }
+}

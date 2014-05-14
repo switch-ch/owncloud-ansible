@@ -1,0 +1,77 @@
+#! /bin/bash
+#
+# Name: zaowncloud
+#
+# Checks OwnCloud activity.
+#
+# Author: jcfischer
+#
+# Version: 1.0
+#
+# be sure to grant zabbix access to the tables:
+# $ psql
+# > \c owncloud
+# > grant all privileges on oc_filecache to zabbix;
+# > grant all privileges on oc_ldap_user_mapping to zabbix;
+#
+
+zapostver="0.1"
+rval=0
+sql=""
+
+case $1 in
+
+#'summary')
+#       sql="select a.datname, pg_size_pretty(pg_database_size(a.datid)) as size, cast(blks_hit/(blks_read+blks_hit+0.000001)*100.0 as numeric(5,2)) as cache, cast(xact_commit/(xact_rollback+xact_commit+0.000001)*100.0 as numeric(5,2)) as success from pg_stat_database a order by a.datname"
+#       ;;
+
+#'size')
+        #comprobar aqui los parametros
+#       shift
+#       sql="select pg_database_size('$1') as size"
+#       ;;
+
+#'version')
+#       sql='select version()'
+#       ;;
+
+'users')
+        sql="select count(*) from oc_ldap_user_mapping;"
+        ;;
+
+'files')
+        sql="select count(*) from oc_filecache;"
+        ;;
+
+
+
+
+'zapostver')
+        echo "$zapostver"
+	exit $rval
+        ;;
+
+*)
+        echo "zapost version: $zapostver"
+        echo "usage:"
+	echo "    $0 users                  -- Check the number of ldap users."
+	echo "    $0 files                  -- Check the number of files on oc_filecache"
+
+	echo "    $0 zapostver                   -- Version of this script."
+        exit $rval
+        ;;
+esac
+
+if [ "$sql" != "" ]; then
+	psql -t owncloud -c "$sql"
+	rval=$?
+fi
+
+if [ "$rval" -ne 0 ]; then
+  	echo "ZBX_NOTSUPPORTED"
+fi
+
+exit $rval
+
+#
+# end zapost

@@ -1,0 +1,21 @@
+---
+
+- name: install zabbix_agent plugins
+  apt: name={{ item }} state=present
+  with_items:
+   - zabbix-agent
+   - sysstat
+
+- name: drop configuration file
+  template: src=zabbix_agentd.conf.j2 dest=/etc/zabbix/zabbix_agentd.conf
+  notify: restart zabbix_agent
+
+- name: create additional scripts directory
+  file: dest=/opt/zabbix/bin state=directory owner=zabbix
+
+- name: drop additional monitors
+  copy: src={{ item }} dest=/opt/zabbix/bin mode=0755 owner=zabbix
+  with_items:
+    - zapostgres
+    - zaowncloud
+    - zabbix_haproxy
