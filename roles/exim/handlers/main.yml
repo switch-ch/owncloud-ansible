@@ -1,0 +1,8 @@
+---
+
+- name: reload exim
+  service: name=exim4 state=reloaded
+
+- name: reconfigure exim
+  command: update-exim4.conf
+  notify: reload exim

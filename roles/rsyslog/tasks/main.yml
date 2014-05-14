@@ -1,0 +1,44 @@
+---
+
+
+- name: make filesystem
+  command: mkfs.xfs /dev/vdb
+  ignore_errors: yes
+
+- name: mount log volume
+  mount: name=/var/log src=/dev/vdb fstype=xfs state=mounted opts=noatime
+
+- name: install rsyslog
+  apt: name=rsyslog state=present
+
+- name: configure rsyslog
+  copy:
+    src=etc/rsyslog.conf
+    dest=/etc/rsyslog.conf
+  notify: restart rsyslog
+
+- name: configure haproxy
+  copy:
+    src=etc/rsyslog.d/49-haproxy.conf
+    dest=/etc/rsyslog.d/49-haproxy.conf
+    owner=root
+  notify: restart rsyslog
+
+- name: configure owncloud
+  copy:
+    src=etc/rsyslog.d/48-owncloud.conf
+    dest=/etc/rsyslog.d/48-owncloud.conf
+    owner=root
+  notify: restart rsyslog
+
+- name: configure logrotate
+  copy:
+    src=etc/logrotate.d/haproxy
+    dest=/etc/logrotate.d/haproxy
+    owner=root
+
+- name: configure logrotate
+  copy:
+    src=etc/logrotate.d/owncloud
+    dest=/etc/logrotate.d/owncloud
+    owner=root

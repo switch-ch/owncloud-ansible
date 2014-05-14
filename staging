@@ -1,3 +1,7 @@
+
+[syslog]
+10.0.20.100 ansible_ssh_user=ubuntu
+
 [db]
 10.0.20.85 ansible_ssh_user=ubuntu
 
@@ -10,7 +14,9 @@
 [monitoring]
 
 
+
 [staging:children]
+syslog
 db
 dbslave
 monitoring
@@ -41,7 +47,7 @@ db_ip=10.0.20.85
 slave_ip=10.0.20.99
 
 # The internal IP address of the syslog server
-syslog_ip=10.0.20.
+syslog_ip=10.0.20.100
 
 # The admin password for the owncloud instance (login is "admin")
 admin_pass=ownCloudAdmin

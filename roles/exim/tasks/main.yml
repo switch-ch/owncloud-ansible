@@ -1,0 +1,15 @@
+---
+
+# install exim Mail Server
+
+- name: Install exim
+  apt: name={{ item }} state=present
+  with_items:
+  - exim4
+
+- name: Drop Exim Template file
+  copy: src=exim4.conf.template dest=/etc/exim4/exim4.conf.template owner=root mode=0644
+  notify: reconfigure exim
+
+- name: enable exim service
+  service: name=exim4 state=started enabled=yes

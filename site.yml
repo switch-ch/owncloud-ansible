@@ -1,7 +1,7 @@
 ---
 
 # include the different types of servers
-#- include: syslogservers.yml
+- include: syslogservers.yml
 - include: dbservers.yml
 - include: dbslaveservers.yml
 # - include: pgpoolservers.yml

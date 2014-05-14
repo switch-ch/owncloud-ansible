@@ -1,0 +1,18 @@
+---
+# handles the syslogserver
+
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+
+- hosts: syslog
+  vars:
+        node_type: syslog
+  vars_files:
+    - vars/users.yml
+  roles:
+    - common
+#    - zabbix_agent
+    - exim
+    - rsyslog
