@@ -100,3 +100,8 @@
 
 - include: slave.yml
   when: slave and not master
+
+- name: restart postgres
+  service:
+    name=postgresql
+    state=restarted
