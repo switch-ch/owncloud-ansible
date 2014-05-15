@@ -1,0 +1,35 @@
+---
+# handles the loadbalancers
+
+- hosts: web
+  tasks:
+    - name: talk to web servers to populate facts
+      command: /bin/true
+      tags:
+        -config
+
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+#      tags:
+#        - config
+
+- hosts: lb
+  vars_files:
+    - vars/users.yml
+  roles:
+    - common
+    # - zabbix_agent
+    - haproxy
+
+# only install the zabbix sender for haproxy on one server
+# otherwise, you will wonder about the insane data rates you
+# see in your statistics
+#- hosts: lb[0]
+#  tasks:
+#    - name: Add Zabbix HAProxy crontab
+#      cron:
+#        name='zabbix monitoring'
+#        user='zabbix'
+#        job="/opt/zabbix/bin/zabbix_haproxy -c /etc/haproxy/haproxy.cfg -u 'http://127.0.0.1:8080/haproxy?stats;csv' -C {{ HAPROXY_USER }}:{{ HAPROXY_PASSWORD }} -s {{ hostvars[groups['monitoring'][0]].ansible_default_ipv4.address }}"

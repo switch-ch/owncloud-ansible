@@ -15,7 +15,11 @@
 10.0.20.101 ansible_ssh_user=ubuntu
 
 [ldap]
-10.0.20.103 ansible_ssh_user=ubuntu
+10.0.20.104 ansible_ssh_user=ubuntu
+
+[lb]
+10.0.20.106 ansible_ssh_user=ubuntu
+
 
 [cmd]
 localhost ansible_connection=local
@@ -33,6 +37,7 @@ db
 dbslave
 nfs
 ldap
+lb
 web
 monitoring
 cmd
@@ -40,15 +45,21 @@ cmd
 
 
 [staging:vars]
+# tld - the top level domain for this service
+domain=take-back-the.net
+
 # the dns entry name of the service (maps to the public IP of the loadbalancer)
-service_name=drive-stage.take-back-the.net
+service_name=drive-stage.$domain
+
+# The external IP of the loadbalancer
+lb_external_ip=130.59.113.26
 
 # the IP range (/24) of the internal network
 # used for access control etc.
 internal_network=10.0.20.0
 
 # the internal IP address of the LDAP Server (same as the one above)
-ldap_ip=10.0.20.103
+ldap_ip=10.0.20.104
 
 # The host name of the LDAP server
 ldap_host=stage-ldap
@@ -87,7 +98,7 @@ stats_send_to=root@take-back-the.net
 stats_from=root@take-back-the.net
 
 # servers mails to root (cronjobs) are sent to this address
-notification_mail=root@take-back-the.net
+notification_mail=root@$domain
 
 
 #ha proxy username and password

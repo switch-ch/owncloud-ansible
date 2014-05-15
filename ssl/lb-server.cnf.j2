@@ -10,8 +10,8 @@
 # openssl x509 -req -extfile ldap-server.cnf -days 1000 -signkey ldap-server.key -in ldap-server.csr -extensions req_ext -out ldap-server.crt
 
 # the fully qualified server (or service) name
-IP = {{ ldap_ip }}
-FQDN = {{ ldap_host }}.novalocal
+IP = {{ lb_external_ip }}
+FQDN = {{ service_name }}
 
 # the name of your organization
 ORGNAME = {{ domain }}

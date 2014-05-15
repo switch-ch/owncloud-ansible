@@ -1,13 +1,13 @@
 <?php
 $CONFIG = array (
-  'instanceid' => 'xxx',
-  'passwordsalt' => 'yyy',
+  'instanceid' => 'oc3d58e0361e',
+  'passwordsalt' => 'cab76fdfc22e2e4b8e90fceb67f0cd',
   'datadirectory' => '/mnt/data',
   'dbtype' => 'pgsql',
   'version' => '6.0.3.1',
   'dbname' => 'owncloud',
   'dbhost' => '{{ db_ip }}',
-  'dbtableprefix' => '',
+  'dbtableprefix' => 'oc_',
   'dbuser' => 'owncloud',
   'dbpassword' => 'owncloud',
   'installed' => true,
@@ -20,7 +20,7 @@ $CONFIG = array (
   'log_query' => false,
   'log_authfailip' => false,
   'log_rotate_size' => 104857600,
-  'mail_domain' => 'take-back-the.net',
+  'mail_domain' => '{{ domain }}',
   'mail_smtpdebug' => false,
   'mail_smtpmode' => 'smtp',
   'mail_smtphost' => 'localhost',
@@ -31,5 +31,9 @@ $CONFIG = array (
   'updatechecker' => false,
   'maintenance' => false,
   'appstoreenabled' => false,
+  'trusted_domains' =>
+    array (
+      0 => '130.59.113.26',
+    ),
 
 );

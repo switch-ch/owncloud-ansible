@@ -5,7 +5,7 @@
   connection: local
   sudo: false
   tasks:
-    - name: create server.cnf
+    - name: create ldap server.cnf
       template: src=ssl/ldap-server.cnf.j2 dest=ssl/ldap-server-{{ service_name }}.cnf
 
     - name: generate LDAP CSR
@@ -35,3 +35,28 @@
       copy:
         src=ssl/slapd-{{ service_name }}.key
         dest=roles/ldap/files/etc/ssl/slapd-{{service_name }}.key
+
+
+    - name: create lb server.cnf
+      template: src=ssl/lb-server.cnf.j2 dest=ssl/lb-server-{{ service_name }}.cnf
+
+    - name: generate LB CSR
+      command:
+        openssl req -new -config lb-server-{{ service_name }}.cnf -keyout lb-{{ service_name }}.key -out lb-{{ service_name }}.csr
+        chdir=ssl
+        creates=lb-{{ service_name }}.csr
+
+    - name: generate LB CRT
+      command:
+        openssl x509 -req -extfile lb-server-{{ service_name }}.cnf -days 1000 -signkey lb-{{ service_name }}.key -in lb-{{ service_name }}.csr -extensions req_ext -out lb-{{ service_name }}.crt
+        chdir=ssl
+        creates=lb-{{ service_name }}.crt
+
+    - name: contatenate PEM and KEY
+      shell: "chdir=ssl cat lb-{{ service_name }}.crt lb-{{ service_name }}.key > {{ service_name }}.crt"
+
+    - name: copy LB pem to HAPROXY role
+      copy:
+        src=ssl/{{ service_name }}.crt
+        dest=roles/haproxy/files/{{service_name }}.pem
+

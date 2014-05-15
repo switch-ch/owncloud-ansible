@@ -1,0 +1,43 @@
+---
+# This role installs HAProxy and configures it.
+
+- name: install haproxy ppa
+  action: apt_repository repo='deb http://ppa.launchpad.net/vbernat/haproxy-1.5/ubuntu saucy main' state=present
+
+- name: install ppa key
+  apt_key: id=1C61B9CD url=http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x505D97A41C61B9CD state=present
+
+- name: install haproxy
+  action: apt name=haproxy state=installed update_cache=yes
+
+- name: Download socat
+  apt: name={{ item }} state=present
+  with_items:
+  - socat
+
+
+- name: enable haproxy
+  action: template src=haproxy.default dest=/etc/default/haproxy
+  notify:
+    - restart haproxy
+  tags:
+    - config
+
+- name: Configure the haproxy cnf file with hosts
+  template: src=haproxy.cfg.j2 dest=/etc/haproxy/haproxy.cfg
+  notify:
+    - restart haproxy
+  tags:
+    - config
+
+
+- name: upload ssl pem
+  copy: src={{ service_name }}.pem dest=/etc/haproxy/{{ service_name }}.pem
+  ignore_errors: yes
+  notify:
+    - restart haproxy
+  tags:
+    - config
+
+- name: upload 503 Maintenance page
+  copy: src=503maintenance.html dest=/etc/haproxy/503maintenance.html
