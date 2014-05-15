@@ -4,14 +4,12 @@
 - include: syslogservers.yml
 - include: dbservers.yml
 - include: dbslaveservers.yml
-- include: ldapservers.yml
 - include: nfsservers.yml
 - include: webservers.yml
 - include: lbservers.yml
-# - include: pgpoolservers.yml
 
-
-#- include: regservers.yml
-#
+# currently, the ldap server install fails
+# 15.5.2014, jcf
+#- include: ldapservers.yml
 
 
