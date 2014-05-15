@@ -8,9 +8,9 @@ Requirements
 ------------
 
 For detailed instructions on what kind of servers you need, see the following
-document: (SWITCHdrive Architecture)[1]
+document: [SWITCHdrive Architecture][1]
 
-The (installation document)[2] covers the process of setting up your local
+The [installation document][2] covers the process of setting up your local
 workstation with Ansible, the SSH requirements etc. and describes in detail how
 this project is structured
 
@@ -18,12 +18,12 @@ Installation
 ------------
 
 Change the `staging` and `production` files to match your setup. This includes
-IP adresses and variables.
+IP addresses and variables.
 
 Copy the file `vars/users_example.yml` to `vars/users.yml` and add the names
 and keys for the admins and the developers that will need to have access to the server.
 
-Follow the (installation document)[2] to see what should be configured. If your setup
+Follow the [installation document][2] to see what should be configured. If your setup
 differs, you will need to adapt some of the playbooks.
 
 
