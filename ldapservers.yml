@@ -1,0 +1,15 @@
+---
+
+#- hosts: monitoring
+#  tasks:
+#    - name: talk to monitoring servers to populate facts
+#      command: /bin/true
+
+- hosts: ldap
+  vars_files:
+    - vars/users.yml
+  roles:
+    - common
+    # - zabbix_agent
+    - exim
+    - ldap

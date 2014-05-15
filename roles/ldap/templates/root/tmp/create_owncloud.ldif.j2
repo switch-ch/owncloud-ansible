@@ -1,0 +1,22 @@
+#
+# SCHEMA 'ownCloud' for OpenLDAP
+#
+# From http://doc.owncloud.org/server/6.0/admin_manual/configuration/auth_ldap.html
+#
+# Quota Field:
+# ownCloud can read an LDAP attribute and set the user quota according to its value.
+# Specify the attribute here, otherwise keep it empty. The attribute shall return
+# human readable values, e.g. "2 GB".
+# Example: ownCloudQuota
+#
+# ldapadd -Y EXTERNAL -H ldapi:/// -f owncloud.ldif
+#
+# WARNING: the spaces ' ' in the definitions are very important!!!
+
+dn: cn=owncloud,cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: owncloud
+olcAttributeTypes: {0}( 1.3.6.1.4.1.39430.1.1.1 NAME 'ownCloudQuota' DESC 'Use
+ r Quota (i.e. 2 GB)' SYNTAX '1.3.6.1.4.1.1466.115.121.1.15' )
+olcObjectClasses: {0}( 1.3.6.1.4.1.39430.1.2.1 NAME 'ownCloud' DESC 'ownCloud
+  LDAP Schema' AUXILIARY MAY ( ownCloudQuota ) )

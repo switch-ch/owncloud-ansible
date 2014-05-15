@@ -1,0 +1,56 @@
+dn: ou=sudoers,{{ldap_dc}}
+objectclass: organizationalUnit
+objectclass: top
+ou: sudoers
+
+dn: cn=defaults,ou=sudoers,{{ldap_dc}}
+objectClass: top
+objectClass: sudoRole
+cn: defaults
+description: Default sudoOptions go here
+sudoOption: env_reset
+sudoOption: mail_badpass
+sudoOrder: 1
+
+dn: cn=root,ou=sudoers,{{ldap_dc}}
+objectClass: top
+objectClass: sudoRole
+cn: root
+sudoUser: root
+sudoHost: ALL
+sudoRunAsUser: ALL
+sudoRunAsGroup: ALL
+sudoCommand: ALL
+sudoOrder: 2
+
+dn: cn=%admin,ou=sudoers,{{ldap_dc}}
+objectClass: top
+objectClass: sudoRole
+cn: %admin
+sudoUser: %admin
+sudoHost: ALL
+sudoRunAsUser: ALL
+sudoCommand: ALL
+sudoOrder: 3
+
+dn: cn=%sudo,ou=sudoers,{{ldap_dc}}
+objectClass: top
+objectClass: sudoRole
+cn: %sudo
+sudoUser: %sudo
+sudoHost: ALL
+sudoRunAsUser: ALL
+sudoRunAsGroup: ALL
+sudoCommand: ALL
+sudoOrder: 4
+
+dn: cn=%domainadmins,ou=sudoers,{{ldap_dc}}
+objectClass: top
+objectClass: sudoRole
+cn: %domainadmins
+sudoUser: %domainadmins
+sudoHost: ALL
+sudoRunAsUser: ALL
+sudoRunAsGroup: ALL
+sudoCommand: ALL
+sudoOrder: 5

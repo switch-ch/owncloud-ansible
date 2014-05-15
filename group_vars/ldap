@@ -1,0 +1,52 @@
+---
+
+iptables:
+  tcp:
+    - 389
+    - 636
+  udp: []
+#
+# This is used to store files that indicate that an operation has been run. Note that if you change this after you have
+# run the script, you may clobber your previous install and/or other bad things. I do not know if if /etc/ansible is
+# the best place to put these files but I wanted to avoid home directories in case the user that runs ansible ever changes.
+ansible_done_dir: /etc/ansible/.done
+
+ldap_done_dir: $ansible_done_dir/ldap
+
+# These files tell ansible whether or not the associated command was run before.
+ldap_create_user_and_groups_done: $ldap_done_dir/create-users-and-groups
+ldap_create_owncloud_done: $ldap_done_dir/create-owncloud
+ldap_ssl_done: $ldap_done_dir/ldap_ssl
+ldap_create_edumember_done: $ldap_done_dir/edumember
+ldap_create_indexes_done: $ldap_done_dir/create-indexes
+ldap_create_autofs_done: $ldap_done_dir/create-autofs
+ldap_create_automount_done: $ldap_done_dir/create-automount
+ldap_create_sudo_done: $ldap_done_dir/create-sudo
+ldap_create_sudo_master_done: $ldap_done_dir/create-sudo-master
+ldap_slapd_dpkg_reconfigure_done: $ldap_done_dir/slapd-dpkg-reconfigure-done
+
+# the domain is the fully qualified domain name that will be used to
+# i.e. domain1.example.org => dc=domain1,dc=example,dc=org
+# in the slapd initial configuration
+# This has to to match the "ldap_dc" variable defined on the next
+# line
+
+ldap_domain: cloud.$domain
+ldap_dc: dc=cloud,dc=take-back-the,dc=net
+ldap_password: "{{ ldap_password }}"
+ldap_password_size: 16  # The length ldap_password
+ldap_automount_machine: nfs.$domain
+ldap_server: ldap://ldap.$domain
+ldap_g_suffix: ou=Groups
+ldap_u_suffix: ou=Users
+ldap_m_suffix: ou=Machines
+
+ldap_include_create_user_and_groups: True
+ldap_include_create_indexes: True
+ldap_include_create_owncloud: True
+ldap_include_ldap_ssl: True
+ldap_include_create_autofs: False
+ldap_include_create_automount: False
+ldap_include_create_sudo: False
+ldap_include_create_sudo_master: False
+ldap_include_create_edumember: True

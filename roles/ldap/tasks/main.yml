@@ -1,0 +1,109 @@
+---
+
+# Install the LDAP Server
+#
+# based on https://github.com/jgrowl/ansible-playbook-ldap
+#
+
+- name: ldap | Make an ansible directory for remembering what we previously run
+  file: path=$ldap_done_dir state=directory owner=root group=root
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | install ldap packages
+  apt: pkg=$item state=installed
+  with_items:
+    - slapd
+    - ldap-utils
+    - ldapscripts
+  tags:
+    - ldap
+    - auth
+
+- name: Have we configured slapd before?
+  shell: "[ -f {{ ldap_slapd_dpkg_reconfigure_done }} ] && echo 'found' || echo ''"
+  register: ldap_slapd_already_configured
+
+- name: ldap | Configure slapd
+  dpkg_reconfigure:
+    pkg: slapd
+    answers:
+      slapd/internal/generated_adminpw: password
+      slapd/password2:  $ldap_password
+      slapd/password1: $ldap_password
+      slapd/allow_ldap_v2: false
+      shared/organization: $ldap_domain
+      slapd/no_configuration: false
+      slapd/move_old_database: true
+      slapd/dump_database_destdir: /var/backups/slapd-VERSION
+      slapd/purge_database: false
+      slapd/domain: $ldap_domain
+      slapd/backend: HDB
+      slapd/dump_database: when needed
+  when: ldap_slapd_already_configured.stdout.find('found') == -1
+
+- name: ldap | Ugly hack to make sure the slapd reconfigure does not get run more than once
+  shell: touch {{ ldap_slapd_dpkg_reconfigure_done }} creates={{ ldap_slapd_dpkg_reconfigure_done }}
+  tags:
+    - ldap
+    - auth
+
+- include: load-schema.yml
+
+- name: ldap | ensure ldapscripts.conf exists
+  template: src=root/etc/ldapscripts/ldapscripts.conf.j2 dest=/etc/ldapscripts/ldapscripts.conf owner=root group=root
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install add user template
+  template: src=root/etc/ldapscripts/ldapadduser.template.j2 dest=/etc/ldapscripts/ldapadduser.template owner=root group=root
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | ensure ldap.secret exists
+  template: src=root/etc/ldap.secret.j2 dest=/etc/ldap.secret owner=root group=root mode=0400
+  tags:
+    - ldap
+    - auth
+
+# This is really goofy but editing the secrets file in vims leaves an extra space at the end. Not sure what all editors do this
+# If your editor does not do this then this command will mess up your file.
+# - name: ldap | ensure ldap.secret has no trailing space
+#  command: truncate --size {{ ldap_password_size }}  /etc/ldap.secret
+
+# SSL
+- name: create SSL directory
+  file: dest=/etc/ldap/ssl state=directory owner=openldap group=openldap
+
+- name: drop PEM file
+  copy: src=etc/ssl/slapd-{{ service_name }}.pem dest=/etc/ldap/ssl/slapd.pem owner=openldap group=openldap mode=400
+  ignore_errors: yes
+
+- name: drop key file
+  copy: src=etc/ssl/slapd-{{ service_name }}.key dest=/etc/ldap/ssl/slapd.key owner=openldap group=openldap mode=400
+  ignore_errors: yes
+
+- name: drop default/slapd file
+  copy: src=etc/default/slapd dest=/etc/default/slapd owner=openldap group=openldap mode=644
+
+- name: remove ldap:// from config file
+  lineinfile:
+    dest=/etc/default/slapd
+    regexp='^SLAPD_SERVICES'
+    line='SLAPD_SERVICES="ldaps:/// ldapi:///"'
+  when: ldap_include_ldap_ssl
+
+- name: restart slapd
+  service: name=slapd state=restarted
+
+- name: create backup directory
+  file: dest=/var/backup/slapd state=directory owner=root
+
+- name: setup cronjob to backup ldap database
+  cron: name="backup_ldap" user=root minute="45" hour="23" job='/usr/sbin/slapcat -H ldaps:/// -b "{{ ldap_dc }}" > /var/backup/slapd/{{ ldap_domain }}-`date +\%d\%m\%y`.ldif'
+
+
+

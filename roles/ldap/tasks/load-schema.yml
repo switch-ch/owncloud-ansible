@@ -1,0 +1,138 @@
+---
+
+- name: ldap | Make an ansible directory for remembering what we previously run
+  file: path=$ldap_done_dir state=directory owner=root group=root
+  tags:
+    - ldap
+    - auth
+
+
+- name: ldap | Copy over the edumember ldif
+  template: src=root/tmp/edumember.ldif.j2 dest=/tmp/create_edumember.ldif owner=root group=root
+  when: ldap_include_create_edumember
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install edumemeber
+  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f create_edumember.ldif && touch $ldap_create_edumember_done chdir=/tmp creates=$ldap_create_edumember_done
+  when: ldap_include_create_edumember
+  tags:
+    - ldap
+    - auth
+
+
+- name: ldap | Copy over the create owncloud ldif
+  template: src=root/tmp/create_owncloud.ldif.j2 dest=/tmp/create_owncloud.ldif owner=root group=root
+  when: ldap_include_create_owncloud
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install owncloud
+  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f create_owncloud.ldif && touch $ldap_create_owncloud_done chdir=/tmp creates=$ldap_create_owncloud_done
+  when: ldap_include_create_owncloud
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Copy over the create users and group ldif
+  template: src=root/tmp/create_users_and_groups.ldif.j2 dest=/tmp/create_users_and_groups.ldif owner=root group=root
+  when: ldap_include_create_user_and_groups
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install users and groups
+  shell: ldapadd -w $ldap_password -x -D cn=admin,$ldap_dc -f create_users_and_groups.ldif && touch $ldap_create_user_and_groups_done chdir=/tmp creates=$ldap_create_user_and_groups_done
+  when: ldap_include_create_user_and_groups
+  tags:
+    - ldap
+    - auth
+
+
+
+- name: ldap | Copy over the create ssl ldif
+  template: src=root/tmp/ldap_ssl.ldif.j2 dest=/tmp/ldap_ssl.ldif owner=root group=root
+  when: ldap_include_ldap_ssl
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install tls
+  shell: ldapmodify -Y EXTERNAL -H ldapi:/// -f ldap_ssl.ldif && touch $ldap_ssl_done chdir=/tmp creates=$ldap_ssl_done
+  when: ldap_include_ldap_ssl
+  tags:
+    - ldap
+    - auth
+
+
+- name: ldap | Copy over the indexes ldif
+  template: src=root/tmp/create_indexes.ldif.j2 dest=/tmp/create_indexes.ldif owner=root group=root
+  when: ldap_include_create_indexes
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install indexes
+  shell: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f create_indexes.ldif && touch $ldap_create_indexes_done chdir=/tmp creates=$ldap_create_indexes_done
+  when: ldap_include_create_indexes
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Copy over the autofs ldif
+  template: src=root/tmp/create_autofs.ldif.j2 dest=/tmp/create_autofs.ldif owner=root group=root
+  when: ldap_include_create_autofs
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install autofs
+  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f create_autofs.ldif && touch $ldap_create_autofs_done chdir=/tmp creates=$ldap_create_autofs_done
+  when: ldap_include_create_autofs
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Copy over the automount ldif
+  template: src=root/tmp/create_automount.ldif.j2 dest=/tmp/create_automount.ldif owner=root group=root
+  when: ldap_include_create_automount
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install automount
+  shell: ldapadd -w $ldap_password -x -D cn=admin,$ldap_dc -f create_automount.ldif && touch $ldap_create_automount_done chdir=/tmp creates=$ldap_create_automount_done
+  when: ldap_include_create_automount
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Copy over the sudo ldif
+  template: src=root/tmp/create_sudo.ldif.j2 dest=/tmp/create_sudo.ldif owner=root group=root
+  when: ldap_include_create_sudo
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install sudo
+  shell: ldapadd -Y EXTERNAL -H ldapi:/// -f create_sudo.ldif && touch $ldap_create_sudo_done chdir=/tmp creates=$ldap_create_sudo_done
+  when: ldap_include_create_sudo
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Copy over the sudo master ldif
+  template: src=root/tmp/create_sudo_master.ldif.j2 dest=/tmp/create_sudo_master.ldif owner=root group=root
+  when: ldap_include_create_sudo_master
+  tags:
+    - ldap
+    - auth
+
+- name: ldap | Install sudo master
+  shell: ldapadd -w $ldap_password -x -D cn=admin,$ldap_dc -f create_sudo_master.ldif && touch $ldap_create_sudo_master_done chdir=/tmp creates=$ldap_create_sudo_master_done
+  when: ldap_include_create_sudo_master
+  tags:
+    - ldap
+    - auth

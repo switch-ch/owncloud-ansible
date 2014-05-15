@@ -1,0 +1,2 @@
+#! /bin/bash
+/usr/sbin/slapcat -H ldaps:/// -b "{{ ldap_dc }}" | grep uid: | awk '{ split($2,mail,"@"); print mail[2] } ' | sort | uniq -c | sort -k2 | mail -s 'oc users `date +\%d.\%m.\%y`' {{ stats_send_to }} -- -r {{ stats_from }}

@@ -1,0 +1,31 @@
+dn: ou=admin,{{ldap_dc}}
+ou: admin
+objectClass: top
+objectClass: organizationalUnit
+
+dn: ou=automount,ou=admin,{{ldap_dc}}
+ou: automount
+objectClass: top
+objectClass: organizationalUnit
+
+dn: ou=auto.master,ou=automount,ou=admin,{{ldap_dc}}
+ou: auto.master
+objectClass: top
+objectClass: automountMap
+
+dn: cn=/home,ou=auto.master,ou=automount,ou=admin,{{ldap_dc}}
+cn: /home
+objectClass: top
+objectClass: automount
+automountInformation: ldap:ou=auto.home,ou=automount,ou=admin,{{ldap_dc}} --timeout=60 --ghost
+
+dn: ou=auto.home,ou=automount,ou=admin,{{ldap_dc}}
+ou: auto.home
+objectClass: top
+objectClass: automountMap
+
+dn: cn=/,ou=auto.home,ou=automount,ou=admin,{{ldap_dc}}
+cn: /
+objectClass: top
+objectClass: automount
+automountInformation: -fstype=nfs4,rw,hard,intr,fsc,sec=krb5 {{ldap_automount_machine}}:/home/$
