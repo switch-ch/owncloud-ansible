@@ -87,7 +87,14 @@ where taskname.yml is one of the following:
 * servers_stop.yml          - stop the web servers (the load balancer will show a 503 page)
 * backup_db.yml             - pull a backup of the postgres database to your local workstation
 
+Contributing
+------------
 
+1. Fork it ( https://github.com/switch-ch/owncloud-ansible/fork )
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create a new Pull Request
 
 [1]: https://github.com/switch-ch/cloudservice-owncloud/blob/master/source/architecture.rst
 [2]: https://github.com/switch-ch/cloudservice-owncloud/blob/master/source/installation.rst
