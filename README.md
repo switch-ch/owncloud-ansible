@@ -38,6 +38,18 @@ or individual server groups like so:
 
     ansible-playbook -i testing -s webservers.yml
 
+OwnCloud is a bit stupid about its config files. In order to get the initial installation to
+work, ssh to one of the web servers, then delete `var/www/config/config.php` and open your
+owncloud installation from a web browser. OwnCloud will now install and setup a working `config.php`.
+
+Open it and copy the values for `instanceid`, `passwordsalt` and `trusted_domains` to the config
+files in `roles/owncloud/templates/TLD/config.php.j2` then re-run the playbook that sets up the
+webservers:
+
+    ansible-playbook -i testing -s webservers.yml
+
+You will need to do a similar dance when you upgrade ownCloud, as the update process changes the
+version number in the owncloud config file.
 
 Environments
 ------------
@@ -65,7 +77,7 @@ Tasks
 
 There are a number of tasks you can perform on the application:
 
-    ansible-playbook -i testing -s taskname.yml
+    ansible-playbook -i testing -s scripts/taskname.yml
 
 where taskname.yml is one of the following:
 
