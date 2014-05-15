@@ -1,0 +1,29 @@
+---
+
+- hosts: db
+
+
+  tasks:
+
+    - name: Backup the database (sql)
+      command: su -c "/usr/bin/pg_dump -Fp  -U postgres owncloud | gzip > /tmp/owncloud.sql.gz" postgres
+
+    - name: Backup the database (custom)
+      command: su -c "/usr/bin/pg_dump -Fc  -U postgres owncloud -f /tmp/owncloud.custom" postgres
+
+    - name: fetch the backups
+      fetch:
+        src=/tmp/{{ item }}
+        dest=backups
+      with_items:
+        - owncloud.sql.gz
+        - owncloud.custom
+
+    - name: remove file from server
+      file:
+        dest=/tmp/{{ item }}
+        state=absent
+      with_items:
+        - owncloud.sql.gz
+        - owncloud.custom
+

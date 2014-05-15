@@ -1,0 +1,16 @@
+---
+
+- hosts: web
+
+
+  tasks:
+
+    - name: enable maintenance mode
+      lineinfile:
+        dest=/var/www/owncloud/config/config.php
+        regexp='maintenance'
+        line=" 'maintenance' => true,"
+
+    - name: restart app servers
+      service: name=php5-fpm state=restarted
+

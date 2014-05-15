@@ -1,0 +1,10 @@
+---
+
+- hosts: web
+
+
+  tasks:
+
+    - name: stop the webservers
+      service: name=nginx state=stopped
+

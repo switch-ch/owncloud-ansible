@@ -1,0 +1,13 @@
+---
+
+- hosts: web
+
+
+  tasks:
+
+    - name: restart the appservers
+      service: name=php5-fpm state=restarted
+
+    - name: restart the webservers
+      service: name=nginx state=restarted
+
