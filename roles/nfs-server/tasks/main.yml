@@ -56,3 +56,8 @@
 - name: setup monthly cronjob
   cron: name="backup monthly" user=root minute="10" hour="21" day="1" job="/usr/bin/rsnapshot monthly"
 
+- name: don't run updatedb on mounted directories
+  lineinfile:
+    dest=/etc/updatedb.conf
+    regexp='PRUNEPATHS'
+    line='PRUNEPATHS="/tmp /var/spool /media /home/.ecryptfs /mnt/data /mnt/backup"'
