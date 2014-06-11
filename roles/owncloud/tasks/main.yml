@@ -168,6 +168,17 @@
     - app
     - config
 
+- name: clean tmp/oc-clean directory
+  cron: name="delete temporary zip files" user=www-data  hour="22" minute=2 job="find /tmp/oc-noclean/*.zip -mtime +2 -exec rm {} \;"
+  tags:
+    - app
+    - config
+
+- name: clean tmporary upload files
+  cron: name="delete php upload files" user=www-data  minute=5 hour="*" job="find /tmp/php* -mmin +60 -size +500M -delete"
+  tags:
+    - app
+    - config
 
 - name: drop nginx site configuration
   template: src={{ service_name }}.j2 dest=/etc/nginx/sites-available/{{ service_name }}
