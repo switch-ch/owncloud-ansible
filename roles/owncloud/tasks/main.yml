@@ -23,6 +23,7 @@
     - curl
     - libcurl3
     - nfs-common
+    - pgbouncer
   tags:
     - infrastructure
 
@@ -92,6 +93,29 @@
   tags:
     - infrastructure
 
+
+# Configure pgbouncer
+
+- name: pgbouncer startup
+  template:
+    src=etc/default/pgbouncer.j2
+    dest=/etc/default/pgbouncer
+
+- name: pgbouncer userslist
+  template:
+    src=etc/pgbouncer/userlist.txt.j2
+    dest=/etc/pgbouncer/userlist.txt
+  notify: restart pgbouncer
+
+
+- name: pgbouncer config
+  template:
+    src=etc/pgbouncer/pgbouncer.ini.j2
+    dest=/etc/pgbouncer/pgbouncer.ini
+  notify: restart pgbouncer
+
+- name: start pgbouncer service
+  service: name=pgbouncer state=started enabled=true
 
 # Configure Owncloud
 

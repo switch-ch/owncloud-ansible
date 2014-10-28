@@ -2,3 +2,6 @@
 
 - name: restart syslog
   service: name=rsyslog state=restarted
+
+- name: restart pgbouncer
+  service: name=pgbouncer state=restarted
