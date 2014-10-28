@@ -43,10 +43,6 @@
 - name: configure rsnapshot
   copy: src=rsnapshot.conf dest=/etc/rsnapshot.conf owner=root mode=644
 
-
-- name: setup hourly cronjob
-  cron: name="backup hourly" user=root minute="5" hour="5,11,17,23" job="/usr/bin/rsnapshot hourly"
-
 - name: setup daily cronjob
   cron: name="backup daily" user=root minute="30" hour="23" job="/usr/bin/rsnapshot daily"
 
