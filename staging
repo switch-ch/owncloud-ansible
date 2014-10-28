@@ -15,7 +15,7 @@
 10.0.20.101 ansible_ssh_user=ubuntu
 
 [ldap]
-10.0.20.104 ansible_ssh_user=ubuntu
+10.0.20.103 ansible_ssh_user=ubuntu
 
 [lb]
 10.0.20.106 ansible_ssh_user=ubuntu
@@ -81,7 +81,7 @@ syslog_ip=10.0.20.100
 admin_pass=ownCloudAdmin
 
 # The version number of the ownCloud code installed
-OWNCLOUD_VERSION='6.0.3'
+OWNCLOUD_VERSION='6.0.5'
 
 # Is this an enterprise version of owncloud? Set to true, it will install
 # the enterprise version (the tgz file must be in 'roles/owncloud/files/owncloudEE)
