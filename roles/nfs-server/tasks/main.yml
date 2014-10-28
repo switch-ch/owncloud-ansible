@@ -57,3 +57,9 @@
     dest=/etc/updatedb.conf
     regexp='PRUNEPATHS'
     line='PRUNEPATHS="/tmp /var/spool /media /home/.ecryptfs /mnt/data /mnt/backup"'
+
+- name: increase ulimits
+  copy: src=limits.d/$item dest=/etc/security/limits.d/$item owner=root mode=644
+  with_items:
+    - root.conf
+    - sshd.conf
