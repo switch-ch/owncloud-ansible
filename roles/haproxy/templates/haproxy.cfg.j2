@@ -51,7 +51,7 @@ frontend unsecured
     http-request redirect scheme https if !{ ssl_fc }
 
 frontend ssl        # @zabbix_frontend(box-lb1)
-    bind 0.0.0.0:443 ssl crt /etc/haproxy/{{ service_name }}.pem ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS
+    bind 0.0.0.0:443 ssl crt /etc/haproxy/{{ service_name }}.pem ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AES:RSA+3DES:!ADH:!AECDH:!MD5:!DSS no-sslv3
 
     # http-request redirect code 301 location https://drive.switch.ch%[req.uri] if { hdr_beg(host) -i owncloud.bcc.switch.ch }
 
