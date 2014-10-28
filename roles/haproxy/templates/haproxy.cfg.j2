@@ -55,6 +55,12 @@ frontend ssl        # @zabbix_frontend(box-lb1)
 
     # http-request redirect code 301 location https://drive.switch.ch%[req.uri] if { hdr_beg(host) -i owncloud.bcc.switch.ch }
 
+    # check for desktop or sync clients and send them to their own server group
+    acl acl_syncclient hdr_reg(User-Agent) mirall csyncoC
+
+    use_backend sync if acl_syncclient
+
+
     default_backend owncloud
     mode http
     # option httpclose
@@ -77,4 +83,23 @@ backend owncloud
 
     {% for host in groups['web'] %}
     server {{ hostvars[host].ansible_hostname }} {{ hostvars[host]['ansible_' + iface].ipv4.address  }}:{{ httpd_port }} cookie {{ hostvars[host].ansible_hostname }} check on-error mark-down fastinter 500ms  # @zabbix_server({{hostvars[host].ansible_hostname}})
+    {% endfor %}
+
+backend sync
+    mode http
+    {% for host in groups['lb'] %}
+    # listen {{ daemonname }} {{ hostvars[host]['ansible_all_ipv4_addresses'][0] }}:{{ listenport }}
+    {% endfor %}
+    balance     roundrobin
+    # cookie SRVNAME insert
+    option httpchk GET /foo.php
+
+    # http://comments.gmane.org/gmane.comp.web.haproxy/14720, closes
+    # NVT: Missing Secure Attribute SSL Cookie Information Disclosure Vulnerability (OID: 1.3.6.1.4.1.25623.1.0.902661)
+    acl secure res.hdr(Set-Cookie),lower -m sub secure
+    rspirep ^(Set-cookie:.*) \1;\ Secure if ! secure
+
+    {% for host in groups['sync'] %}
+    # server {{ hostvars[host].ansible_hostname }} {{ hostvars[host]['ansible_' + iface].ipv4.address  }}:{{ httpd_port }} cookie {{ hostvars[host].ansible_hostname }} check on-error mark-down fastinter 500ms  # @zabbix_server({{hostvars[host].ansible_hostname}})
+    server {{ hostvars[host].ansible_hostname }} {{ hostvars[host]['ansible_' + iface].ipv4.address  }}:{{ httpd_port }} check on-error mark-down fastinter 500ms  # @zabbix_server({{hostvars[host].ansible_hostname}})
     {% endfor %}

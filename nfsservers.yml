@@ -13,6 +13,11 @@
     - name: talk to web servers to populate facts
       command: /bin/true
 
+- hosts: sync
+  tasks:
+    - name: talk to web servers to populate facts
+      command: /bin/true
+
 
 - hosts: nfs
   vars_files:

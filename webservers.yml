@@ -28,6 +28,20 @@
     - nginx
     - owncloud
 
+- hosts: sync
+  vars:
+    node_type: web
+  vars_files:
+    - vars/users.yml
+
+  roles:
+    - common
+    - exim
+    - zabbix_agent
+    - nagios_switch_plugins
+    - nginx
+    - owncloud
+
 - hosts: web[0]
   tasks:
     - name: setup cronjob

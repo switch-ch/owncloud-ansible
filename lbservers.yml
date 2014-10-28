@@ -8,6 +8,13 @@
       tags:
         -config
 
+- hosts: sync
+  tasks:
+    - name: talk to web servers to populate facts
+      command: /bin/true
+      tags:
+m       -config
+
 #- hosts: monitoring
 #  tasks:
 #    - name: talk to monitoring servers to populate facts
