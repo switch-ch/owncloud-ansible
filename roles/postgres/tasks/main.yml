@@ -94,6 +94,8 @@
     - "log_rotation_age = 1d"
     - "log_min_duration_statement = 30"
     - "log_line_prefix = '%t '"
+    - "autovacuum_analyze_scale_factor = 0.005"
+    - "autovacuum_vacuum_scale_factor = 0.005"
 
 - include: master.yml
   when: master and not slave
