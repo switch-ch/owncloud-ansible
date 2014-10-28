@@ -63,3 +63,6 @@
   with_items:
     - root.conf
     - sshd.conf
+
+- name: restart iptables-persistent server
+  service: name=iptables-persistent state=restarted
