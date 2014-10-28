@@ -187,19 +187,19 @@
     - config
 
 - name: delete old session files
-  cron: name="delete old sessions" user=www-data minute=1 hour="*" job="find /dev/shm/sess_* -mmin +59 -exec rm {} \;"
+  cron: name="delete old sessions" user=www-data minute="0,10,20,30,40,50" hour="*" job="find /dev/shm/ -name 'sess_*' -mmin +31 -exec rm {} \;"
   tags:
     - app
     - config
 
 - name: clean tmp/oc-clean directory
-  cron: name="delete temporary zip files" user=www-data  hour="22" minute=2 job="find /tmp/oc-noclean/*.zip -mtime +2 -exec rm {} \;"
+  cron: name="delete zip crap" user=www-data  hour="2,6,10,14,18,22" minute=2 job="find /tmp/oc-noclean/ -name '*.zip' -mmin +240 -exec rm {} \;"
   tags:
     - app
     - config
 
 - name: clean tmporary upload files
-  cron: name="delete php upload files" user=www-data  minute=5 hour="*" job="find /tmp/php* -mmin +60 -size +500M -delete"
+  cron: name="delete php crap" user=www-data  minute=5 hour="*" job="find /tmp/ -name 'php*' -mmin +60 -size +500M -delete"
   tags:
     - app
     - config
